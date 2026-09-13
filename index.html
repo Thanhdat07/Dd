@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3AE GROUP - Điểm Danh & Đớp</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); width: 100%; max-width: 600px; text-align: center; }
+        h1 { color: #00e676; margin-bottom: 20px; font-size: 2.5rem; text-transform: uppercase; letter-spacing: 2px; }
+        
+        /* Auth Screen */
+        .auth-container { display: block; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; margin-bottom: 5px; color: #b3b3b3; }
+        input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #333; background-color: #2c2c2c; color: white; outline: none; }
+        input:focus, select:focus { border-color: #00e676; }
+        
+        button { background-color: #00e676; color: #121212; font-weight: bold; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 1.1rem; transition: 0.3s; margin-top: 10px; }
+        button:hover { background-color: #00c853; }
+        .toggle-auth { color: #00e676; cursor: pointer; text-decoration: underline; margin-top: 15px; display: inline-block; font-size: 0.9rem; }
+        
+        /* Main Screen */
+        .main-container { display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+        .user-info { text-align: left; }
+        .balance { font-size: 1.5rem; color: #ffd700; font-weight: bold; }
+        .logout-btn { background-color: #ff5252; width: auto; padding: 8px 15px; font-size: 0.9rem; margin: 0; color: white; }
+        
+        /* Dashboard Sections */
+        .card { background-color: #2c2c2c; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
+        .card h2 { margin-bottom: 15px; color: #00e676; font-size: 1.5rem; }
+        
+        /* Điểm danh */
+        .attendance-info { margin-bottom: 15px; font-size: 1.1rem; }
+        .btn-attendance { background-color: #29b6f6; color: white; }
+        .btn-attendance:disabled { background-color: #555; cursor: not-allowed; color: #888; }
+
+        /* Đớp */
+        .mouth-btn { font-size: 5rem; cursor: pointer; user-select: none; transition: transform 0.1s; display: inline-block; background: none; border: none; outline: none; margin: 10px 0; }
+        .mouth-btn:active { transform: scale(0.85); }
+        .click-count { font-size: 1.2rem; color: #ff4081; margin-top: 10px; }
+
+        /* Leaderboard */
+        .leaderboard { text-align: left; margin-top: 15px; }
+        .leaderboard-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #444; }
+        .leaderboard-item:last-child { border-bottom: none; }
+        .rank { font-weight: bold; color: #00e676; width: 30px; }
+        
+        .error { color: #ff5252; margin-top: 10px; display: none; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>3AE GROUP</h1>
+    
+    <!-- Màn hình Đăng nhập / Đăng ký -->
+    <div class="auth-container" id="auth-screen">
+        <h2 id="auth-title">Đăng Nhập</h2>
+        
+        <div class="form-group" id="role-group" style="display: none;">
+            <label>Chức vụ:</label>
+            <select id="role">
+                <option value="Nhân viên">Nhân viên</option>
+                <option value="Trưởng phòng">Trưởng phòng</option>
+                <option value="Giám đốc">Giám đốc</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Tên người dùng:</label>
+            <input type="text" id="username" placeholder="Nhập tên tài khoản" required>
+        </div>
+        <div class="form-group">
+            <label>Mật khẩu:</label>
+            <input type="password" id="password" placeholder="Nhập mật khẩu" required>
+        </div>
+        
+        <button id="auth-btn" onclick="handleAuth()">Đăng Nhập</button>
+        <p class="error" id="auth-error">Lỗi hiển thị ở đây</p>
+        <span class="toggle-auth" onclick="toggleAuthMode()">Chưa có tài khoản? Đăng ký ngay</span>
+    </div>
+
+    <!-- Màn hình Chính -->
+    <div class="main-container" id="main-screen">
+        <div class="header">
+            <div class="user-info">
+                <h3 id="display-name">Người dùng</h3>
+                <small id="display-role">Chức vụ</small>
+            </div>
+            <div>
+                <div class="balance" id="display-balance">0 VND</div>
+                <button class="logout-btn" onclick="logout()">Đăng xuất</button>
+            </div>
+        </div>
+
+        <!-- Section Điểm Danh -->
+        <div class="card">
+            <h2>Điểm Danh Hằng Tuần</h2>
+            <div class="attendance-info" id="attendance-status">Hôm nay chưa điểm danh!</div>
+            <p style="font-size: 0.9rem; color: #aaa; margin-bottom: 15px;">(Ngày 1: 1M. Các ngày sau nhân đôi. Bỏ lỡ trừ 500k/ngày)</p>
+            <button class="btn-attendance" id="btn-attendance" onclick="markAttendance()">Điểm Danh Nhận Thưởng</button>
+        </div>
+
+        <!-- Section "Đớp" -->
+        <div class="card">
+            <h2>Chuyên Mục "ĐỚP"</h2>
+            <p>Nhấp vào miệng để húp 1,000 VND</p>
+            <div class="mouth-btn" onclick="dop()">👄</div>
+            <div class="click-count">Số lượt đớp: <strong id="display-clicks">0</strong></div>
+        </div>
+
+        <!-- Section Bảng Xếp Hạng -->
+        <div class="card">
+            <h2>Bảng Xếp Hạng "Đớp"</h2>
+            <div class="leaderboard" id="leaderboard-list">
+                <!-- Data đổ vào đây -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Khởi tạo Database tạm thời bằng LocalStorage
+    let db = JSON.parse(localStorage.getItem('3ae_db')) || { users: {} };
+    let currentUser = localStorage.getItem('3ae_currentUser') || null;
+    let isRegisterMode = false;
+
+    // Các biến DOM
+    const authScreen = document.getElementById('auth-screen');
+    const mainScreen = document.getElementById('main-screen');
+    const authTitle = document.getElementById('auth-title');
+    const roleGroup = document.getElementById('role-group');
+    const authBtn = document.getElementById('auth-btn');
+    const toggleAuth = document.querySelector('.toggle-auth');
+    const authError = document.getElementById('auth-error');
+
+    // Hàm lấy ngày hiện tại định dạng YYYY-MM-DD
+    function getTodayStr() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    // Hàm tính số ngày chênh lệch
+    function getDaysDiff(date1, date2) {
+        const d1 = new Date(date1);
+        const d2 = new Date(date2);
+        return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+    }
+
+    // Định dạng tiền tệ
+    function formatMoney(amount) {
+        return amount.toLocaleString('vi-VN') + " VNĐ";
+    }
+
+    // --- LOGIC GIAO DIỆN XÁC THỰC ---
+    function toggleAuthMode() {
+        isRegisterMode = !isRegisterMode;
+        authError.style.display = 'none';
+        if(isRegisterMode) {
+            authTitle.innerText = "Đăng Ký Tài Khoản";
+            roleGroup.style.display = "block";
+            authBtn.innerText = "Đăng Ký";
+            toggleAuth.innerText = "Đã có tài khoản? Đăng nhập";
+        } else {
+            authTitle.innerText = "Đăng Nhập";
+            roleGroup.style.display = "none";
+            authBtn.innerText = "Đăng Nhập";
+            toggleAuth.innerText = "Chưa có tài khoản? Đăng ký ngay";
+        }
+    }
+
+    function showError(msg) {
+        authError.innerText = msg;
+        authError.style.display = 'block';
+    }
+
+    function handleAuth() {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
+        const role = document.getElementById('role').value;
+
+        if(!user || !pass) return showError("Vui lòng điền đủ thông tin!");
+
+        if(isRegisterMode) {
+            if(db.users[user]) return showError("Tên người dùng đã tồn tại! Vui lòng chọn tên khác.");
+            
+            // Đăng ký user mới
+            db.users[user] = {
+                password: pass,
+                role: role,
+                balance: 0,
+                clicks: 0,
+                streak: 0, // Số ngày điểm danh liên tiếp (tối đa 7)
+                lastActiveDate: getTodayStr(), // Dùng để tính ngày bị lỡ điểm danh
+                lastAttendanceDate: ""
+            };
+            saveDB();
+            alert("Đăng ký thành công!");
+            toggleAuthMode();
+        } else {
+            // Đăng nhập
+            if(!db.users[user]) return showError("Tài khoản không tồn tại!");
+            if(db.users[user].password !== pass) return showError("Sai mật khẩu!");
+            
+            currentUser = user;
+            localStorage.setItem('3ae_currentUser', currentUser);
+            
+            // Xử lý phạt không điểm danh khi đăng nhập
+            applyPenaltyIfNeeded();
+            loadMainScreen();
+        }
+    }
+
+    function applyPenaltyIfNeeded() {
+        let userData = db.users[currentUser];
+        let today = getTodayStr();
+        
+        if (userData.lastActiveDate && userData.lastActiveDate !== today) {
+            let daysMissed = getDaysDiff(userData.lastActiveDate, today);
+            if (daysMissed > 1) {
+                // Trừ ngày hiện tại ra, những ngày ở giữa là ngày không vào web
+                let actualMissed = daysMissed - 1;
+                let penalty = actualMissed * 500000;
+                userData.balance -= penalty;
+                userData.streak = 0; // Reset chuỗi điểm danh
+                alert(`CẢNH BÁO: Bạn đã không điểm danh ${actualMissed} ngày. Hệ thống đã trừ ${formatMoney(penalty)} trong tài khoản!`);
+            }
+        }
+        userData.lastActiveDate = today;
+        saveDB();
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('3ae_currentUser');
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        authScreen.style.display = 'block';
+        mainScreen.style.display = 'none';
+    }
+
+    // --- LOGIC MÀN HÌNH CHÍNH ---
+    function loadMainScreen() {
+        authScreen.style.display = 'none';
+        mainScreen.style.display = 'block';
+        updateUI();
+        updateLeaderboard();
+    }
+
+    function updateUI() {
+        let userData = db.users[currentUser];
+        document.getElementById('display-name').innerText = currentUser;
+        document.getElementById('display-role').innerText = userData.role;
+        document.getElementById('display-balance').innerText = formatMoney(userData.balance);
+        document.getElementById('display-clicks').innerText = userData.clicks.toLocaleString('vi-VN');
+
+        let btnAtt = document.getElementById('btn-attendance');
+        let attStatus = document.getElementById('attendance-status');
+        
+        let today = getTodayStr();
+        if(userData.lastAttendanceDate === today) {
+            btnAtt.disabled = true;
+            btnAtt.innerText = "Đã Điểm Danh Hôm Nay";
+            attStatus.innerText = `Đang ở Ngày ${userData.streak}/7 của chuỗi.`;
+        } else {
+            btnAtt.disabled = false;
+            let nextStreak = (userData.streak % 7) + 1;
+            let nextReward = 1000000 * Math.pow(2, nextStreak - 1);
+            btnAtt.innerText = `Điểm Danh (Nhận ${formatMoney(nextReward)})`;
+            attStatus.innerText = "Bạn chưa điểm danh hôm nay!";
+        }
+    }
+
+    // --- CHỨC NĂNG ĐIỂM DANH ---
+    function markAttendance() {
+        let userData = db.users[currentUser];
+        let today = getTodayStr();
+        
+        if(userData.lastAttendanceDate === today) return; // Đã điểm danh
+        
+        // Tính tiền thưởng
+        userData.streak = (userData.streak % 7) + 1; // Từ 1 tới 7, sau 7 quay về 1
+        let reward = 1000000 * Math.pow(2, userData.streak - 1); // 1M, 2M, 4M, 8M...
+        
+        userData.balance += reward;
+        userData.lastAttendanceDate = today;
+        
+        saveDB();
+        updateUI();
+        
+        // Hiệu ứng nhẹ
+        alert(`Điểm danh thành công Ngày ${userData.streak}! Bạn nhận được ${formatMoney(reward)}`);
+    }
+
+    // --- CHỨC NĂNG ĐỚP (CLICKER) ---
+    function dop() {
+        let userData = db.users[currentUser];
+        userData.clicks += 1;
+        userData.balance += 1000;
+        
+        // Cập nhật DOM nhanh không cần load lại toàn bộ UI
+        document.getElementById('display-balance').innerText = formatMoney(userData.balance);
+        document.getElementById('display-clicks').innerText = userData.clicks.toLocaleString('vi-VN');
+        
+        saveDB();
+        updateLeaderboard();
+    }
+
+    // --- BẢNG XẾP HẠNG ---
+    function updateLeaderboard() {
+        let listStr = '';
+        
+        // Chuyển Object users thành Array để sort
+        let usersArray = Object.keys(db.users).map(username => {
+            return {
+                username: username,
+                clicks: db.users[username].clicks,
+                role: db.users[username].role
+            };
+        });
+
+        // Sắp xếp theo số lượt click giảm dần
+        usersArray.sort((a, b) => b.clicks - a.clicks);
+
+        // Hiển thị Top 10
+        let topUsers = usersArray.slice(0, 10);
+        
+        topUsers.forEach((u, index) => {
+            listStr += `
+                <div class="leaderboard-item">
+                    <div>
+                        <span class="rank">#${index + 1}</span> 
+                        <strong>${u.username}</strong> 
+                        <small style="color: #aaa;">(${u.role})</small>
+                    </div>
+                    <div style="color: #ff4081; font-weight: bold;">
+                        ${u.clicks.toLocaleString('vi-VN')} Lượt
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('leaderboard-list').innerHTML = listStr;
+    }
+
+    function saveDB() {
+        localStorage.setItem('3ae_db', JSON.stringify(db));
+    }
+
+    // Khởi chạy khi load trang
+    window.onload = () => {
+        if(currentUser && db.users[currentUser]) {
+            applyPenaltyIfNeeded();
+            loadMainScreen();
+        } else {
+            authScreen.style.display = 'block';
+            mainScreen.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
+
